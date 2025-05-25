@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Check, PawPrint, Search, QrCode, Smartphone, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import {Swiper, SwiperSlide} from 'swiper/react'
+import { Navigation } from 'swiper/modules';
+
 
 export default function Sobre() {
 
@@ -96,27 +99,81 @@ export default function Sobre() {
             </CardContent>
           </Card>
         </div>
-        
         <div className="bg-petgreen-light rounded-lg p-8 text-center mb-16">
-          <h2 className="text-2xl font-bold mb-4">Depoimentos de Tutores</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <p className="italic text-gray-600 mb-4">
-                "Meu cachorro Toby escapou durante uma tempestade. Graças ao QR Code do PetFinder, 
-                uma pessoa que o encontrou conseguiu entrar em contato comigo em menos de uma hora!"
-              </p>
-              <p className="font-medium">- Maria S., Igarassu Centro</p>
+          <h2 className="text-2xl font-bold mb-8">Depoimentos de Tutores</h2>
+
+            <div className="relative max-w-6xl mx-auto">
+              {/* setas */}
+              <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 swiper-button-prev text-gray-800 cursor-pointer" />
+              <div className="absolute -right-6 top-1/2 -translate-y-1/2 z-10 swiper-button-next text-gray-800 cursor-pointer" />
+              <Swiper
+               autoplay={{
+                  delay: 2000,       
+                  disableOnInteraction: false}}
+                loop={true}
+                modules={[Navigation]}
+                navigation={{ nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }}
+                spaceBetween={20}
+                breakpoints={{
+                  0: { slidesPerView: 1 },
+                  768: { slidesPerView: 2 },
+                }}
+                className="px-5"
+              >
+                  <SwiperSlide>
+                    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+                      <p className="italic text-gray-600 mb-4">
+                        "Meu cachorro Toby escapou durante uma tempestade. Graças ao QR Code do PetFinder, 
+                        uma pessoa que o encontrou conseguiu entrar em contato comigo em menos de uma hora!"
+                      </p>
+                      <p className="font-medium">- Maria S., Igarassu Centro</p>
+                    </div>
+                  </SwiperSlide>
+
+                  <SwiperSlide>
+                    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+                      <p className="italic text-gray-600 mb-4">
+                        "Minha gata costuma sair para explorar e às vezes vai longe demais. Com o PetFinder, 
+                        tenho tranquilidade sabendo que se alguém a encontrar, poderá me contatar facilmente."
+                      </p>
+                      <p className="font-medium">- Pedro L., Nova Cruz</p>
+                    </div>
+                  </SwiperSlide>
+                  <SwiperSlide>
+                    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+                      <p className="italic text-gray-600 mb-4">
+                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Numquam asperiores id sunt dolor impedit deleniti obcaecati dicta, consequuntur odit ut incidunt explicabo maxime nulla mollitia delectus? Ipsum delectus ea amet!
+                      </p>
+                      <p className="font-medium">- João M., Recife</p>
+                    </div>
+                  </SwiperSlide>
+                  <SwiperSlide>
+                    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+                      <p className="italic text-gray-600 mb-4">
+                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quia vero illum culpa corporis molestiae quae fugit fuga, quisquam voluptatem dolores quo commodi. Illum, sapiente at. Nisi qui asperiores illum quod.
+                      </p>
+                      <p className="font-medium">- João M., Recife</p>
+                    </div>
+                  </SwiperSlide>
+                  <SwiperSlide>
+                    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+                      <p className="italic text-gray-600 mb-4">
+                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quia vero illum culpa corporis molestiae quae fugit fuga, quisquam voluptatem dolores quo commodi. Illum, sapiente at. Nisi qui asperiores illum quod.
+                      </p>
+                      <p className="font-medium">- João M., Recife</p>
+                    </div>
+                  </SwiperSlide>
+                  <SwiperSlide>
+                    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+                      <p className="italic text-gray-600 mb-4">
+                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quia vero illum culpa corporis molestiae quae fugit fuga, quisquam voluptatem dolores quo commodi. Illum, sapiente at. Nisi qui asperiores illum quod.
+                      </p>
+                      <p className="font-medium">- João M., Recife</p>
+                    </div>
+                  </SwiperSlide>
+                </Swiper>
+              </div>
             </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <p className="italic text-gray-600 mb-4">
-                "Minha gata costuma sair para explorar e às vezes vai longe demais. Com o PetFinder, 
-                tenho tranquilidade sabendo que se alguém a encontrar, poderá me contatar facilmente."
-              </p>
-              <p className="font-medium">- Pedro L., Nova Cruz</p>
-            </div>
-          </div>
-        </div>
         
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-6">Pronto para proteger seu pet?</h2>

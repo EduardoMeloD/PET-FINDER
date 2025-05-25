@@ -17,6 +17,7 @@ import Sobre from "./pages/Sobre";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import {AdminCampanhas }from "./pages/AdminCampanhas";
 
+
 const queryClient = new QueryClient();
 
 // Protected route component
