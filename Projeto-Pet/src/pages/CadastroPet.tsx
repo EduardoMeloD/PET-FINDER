@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useRef  } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +19,20 @@ import { Loader2 } from "lucide-react"; // no topo do arquivo
 export default function CadastroPet() {
   const {user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { register, handleSubmit, control, formState: { errors }, watch } = useForm();
+  const location = useLocation();
+  const petToEdit = location.state?.pet || null;
+  const { register, handleSubmit, control, formState: { errors }, setValue, reset, watch } = useForm({
+    defaultValues: petToEdit ? {
+      nomePet: petToEdit.nomePet,
+      tipo: petToEdit.tipo,
+      raca: petToEdit.raca,
+      cor: petToEdit.cor,
+      sexo: petToEdit.sexo,
+      dataNascimento: petToEdit.dataNascimento,
+      descricao: petToEdit.descricao,
+      imagem: petToEdit.imagem
+    } : {}
+  });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [petCode, setPetCode] = useState<string | null>(null);
@@ -28,12 +40,21 @@ export default function CadastroPet() {
   const qrRef = useRef<SVGSVGElement | null>(null);
   const [hasPets, setHasPets] = useState(false);
 
+  useEffect(() => {
+    if (petToEdit) {
+      reset({
+        nomePet: petToEdit.nomePet,
+        tipo: petToEdit.tipo,
+        raca: petToEdit.raca,
+        cor: petToEdit.cor,
+        sexo: petToEdit.sexo,
+        dataNascimento: petToEdit.dataNascimento,
+        descricao: petToEdit.descricao,
+        // imagem: petToEdit.imagem,
+      });
+    }
+  }, [petToEdit, reset]);
 
-
-
-
-  
- 
   const watchFile = watch("imagem");
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,50 +84,61 @@ export default function CadastroPet() {
   };
 
   const onSubmit = async (data: any) => {
-    if (!user) return;
     setIsLoading(true);
-
     try {
-      // Upload image to imgbb
-      const formData = new FormData();
-      formData.append("image", data.imagem[0]);
+      if (petToEdit) {
+        
+        await setDoc(doc(db, "pets", petToEdit.id), {
+          ...data,
+          ownerId: user.uid,
+          petCode: petToEdit.petCode,
+          createdAt: petToEdit.dataCadastro ? new Date(petToEdit.dataCadastro) : new Date(),
+          imagemUrl: petToEdit.imagem
+        });
+        alert("Pet atualizado com sucesso!");
+      } else {
+        
+        // Upload image to imgbb
+        const formData = new FormData();
+        formData.append("image", data.imagem[0]);
 
-      const response = await fetch(
-        `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
-        { method: "POST", body: formData }
-      );
-      
-      const result = await response.json();
+        const response = await fetch(
+          `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
+          { method: "POST", body: formData }
+        );
+        
+        const result = await response.json();
 
-      if (!result.success) {
-        throw new Error("Falha ao enviar imagem");
+        if (!result.success) {
+          throw new Error("Falha ao enviar imagem");
+        }
+
+        const imageUrl = result.data.url;
+
+        // Gerar código único para o pet
+        const uniqueCode = await generateUniquePetCode();
+
+        // Salvar dados no Firestore
+        await setDoc(doc(db, "pets", uniqueCode), {
+          nomePet: data.nomePet,
+          tipo: data.tipo,
+          raca: data.raca,
+          cor: data.cor,
+          sexo: data.sexo,
+          dataNascimento: data.dataNascimento,
+          descricao: data.descricao,
+          imagemUrl: imageUrl,
+          ownerId: user.uid,
+          petCode: uniqueCode,
+          createdAt: new Date(),
+        });
+
+        setPetCode(uniqueCode);
+        setIsSubmitted(true);
       }
-
-      const imageUrl = result.data.url;
-
-      // Gerar código único para o pet
-      const uniqueCode = await generateUniquePetCode();
-
-      // Salvar dados no Firestore
-      await setDoc(doc(db, "pets", uniqueCode), {
-        nomePet: data.nomePet,
-        tipo: data.tipo,
-        raca: data.raca,
-        cor: data.cor,
-        sexo: data.sexo,
-        dataNascimento: data.dataNascimento,
-        descricao: data.descricao,
-        imagemUrl: imageUrl,
-        ownerId: user.uid,
-        petCode: uniqueCode,
-        createdAt: new Date(),
-      });
-
-      setPetCode(uniqueCode);
-      setIsSubmitted(true);
+      navigate("/meus-pets");
     } catch (error) {
-      console.error("Erro ao cadastrar pet:", error);
-      alert("Ocorreu um erro ao cadastrar o pet. Tente novamente.");
+      alert("Erro ao salvar pet");
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +188,7 @@ export default function CadastroPet() {
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="nomePet">Nome do Pet</Label>
+                    <Label htmlFor="nomePet">Nome do Pet*</Label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <PawPrint className="h-5 w-5 text-gray-400" />
@@ -175,7 +207,7 @@ export default function CadastroPet() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="tipo">Tipo</Label>
+                      <Label htmlFor="tipo">Tipo*</Label>
                       <Controller
                         name="tipo"
                         control={control}
@@ -202,19 +234,17 @@ export default function CadastroPet() {
                       <Label htmlFor="raca">Raça</Label>
                       <Input
                         id="raca"
-                        {...register("raca", { required: true })}
+                        {...register("raca")}
                         placeholder="Raça do seu pet"
                         className={errors.raca ? "border-red-500" : ""}
                       />
-                      {errors.raca && (
-                        <p className="text-red-500 text-xs mt-1">Raça é obrigatória</p>
-                      )}
+                    
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="cor">Cor</Label>
+                      <Label htmlFor="cor">Cor*</Label>
                       <Input
                         id="cor"
                         {...register("cor", { required: true })}
@@ -227,7 +257,7 @@ export default function CadastroPet() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="sexo">Sexo</Label>
+                      <Label htmlFor="sexo">Sexo*</Label>
                       <Controller
                         name="sexo"
                         control={control}
@@ -263,18 +293,16 @@ export default function CadastroPet() {
                       </div>
                       <Input
                         id="dataNascimento"
-                        {...register("dataNascimento", { required: true })}
+                        {...register("dataNascimento")}
                         type="date"
                         className={`pl-10 ${errors.dataNascimento ? "border-red-500" : ""}`}
                       />
                     </div>
-                    {errors.dataNascimento && (
-                      <p className="text-red-500 text-xs mt-1">Data de nascimento é obrigatória</p>
-                    )}
+                    
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="descricao">Descrição</Label>
+                    <Label htmlFor="descricao">Descrição*</Label>
                     <Textarea
                       id="descricao"
                       {...register("descricao", { required: true })}
@@ -288,7 +316,7 @@ export default function CadastroPet() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="imagem">Imagem do Pet</Label>
+                    <Label htmlFor="imagem">Imagem do Pet*</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="relative">
@@ -300,7 +328,7 @@ export default function CadastroPet() {
                             type="file"
                             accept="image/*"
                             className={`pl-10 ${errors.imagem ? "border-red-500" : ""}`}
-                            {...register("imagem", { required: true })}
+                            {...register("imagem", { required: !petToEdit })}
                             onChange={handleImageChange}
                           />
                         </div>

@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "../pages/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { PetDetails } from "@/components/PetDetails";
+import {doc, deleteDoc} from "firebase/firestore";
 
 interface Pet {
   id: string;
@@ -93,6 +94,18 @@ export default function MeusPets() {
     setSelectedPet(null);
   };
 
+  const handleDeletePet = async (petId) =>{
+    if (window.confirm("tem certeza que deseja apagar esse pet?")){
+      await deleteDoc(doc(db, "pets", petId))
+      setPets((prev)=> prev.filter((pet) => pet.id !== petId))
+      setModalOpen(false)
+    }
+  }
+
+  const handleEditPet = (pet) => {
+    navigate("/cadastro-pet", {state: {pet}})
+  }
+
   if (!isAuthenticated) return null;
 
   return (
@@ -130,12 +143,20 @@ export default function MeusPets() {
                 key={pet.id}
                 pet={pet}
                 onDetails={() => handleOpenModal(pet)}
+                handleDeletePet={handleDeletePet}
+                handleEditPet={handleEditPet}
               />
             ))}
           </div>
         )}
       </div>
-      <PetDetails pet={selectedPet} isOpen={modalOpen} onClose={handleCloseModal} />
+      <PetDetails 
+      pet={selectedPet} 
+      isOpen={modalOpen}
+      onClose={handleCloseModal} 
+      handleDeletePet={handleDeletePet}
+      handleEditPet={handleEditPet}
+      />
     </Layout>
   );
 }

@@ -1,12 +1,15 @@
 import React from 'react';
+import { Button } from './ui/button';
 
 interface PetDetailsProps {
     pet: any;
     isOpen: boolean;
     onClose: () => void;
+    handleEditPet: (pet: any) => void;
+    handleDeletePet: (id: string) => void;
 }
 
-export function PetDetails({pet, isOpen, onClose}: PetDetailsProps){
+export function PetDetails({pet, isOpen, onClose, handleDeletePet, handleEditPet}: PetDetailsProps){
     if(!isOpen || !pet) return null;
 
     return (
@@ -27,8 +30,12 @@ export function PetDetails({pet, isOpen, onClose}: PetDetailsProps){
             <p><strong>Sexo:</strong> {pet.sexo}</p>
             <p><strong>Data de Cadastro:</strong> {pet.dataCadastro}</p>
             <p><strong>Descrição:</strong> {pet.descricao}</p>
+            <Button onClick={() => handleEditPet(pet)}>Editar</Button>
+            <Button onClick={() => handleDeletePet(pet.id)} className="bg-red-500">Apagar</Button>
             {/* Adicione outros campos conforme necessário */}
             </div>
         </div>
         );
+
+        
 }

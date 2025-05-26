@@ -20,9 +20,11 @@ interface PetCardProps {
   };
   showQRCode?: boolean;
   onDetails?: () => void;
+  handleEditPet: (pet: any) => void;
+  handleDeletePet: (id: string) => void;
 }
 
-export function PetCard({ pet, showQRCode = true, onDetails }: PetCardProps) {
+export function PetCard({ pet, showQRCode = true, onDetails, handleDeletePet, handleEditPet }: PetCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR");
@@ -83,6 +85,9 @@ const downloadQRCode = () => {
               <QRCodeSVG value={pet.qrcodeUrl} size={64} />
             </div>
           )}
+          <div style={{ display: "flex", gap: "16px", marginTop: "16px" }}>
+  
+</div>
         </div>
       </CardHeader>
       <CardContent className="pb-2">
@@ -114,7 +119,7 @@ const downloadQRCode = () => {
         
         {showQRCode && (
           <Button variant="ghost" size="sm" className="text-petgreen flex items-center gap-1" onClick={downloadQRCode}>
-             <QRCodeSVG value={pet.qrcodeUrl} size={64} ref={qrRef} />
+            <QRCodeSVG value={pet.qrcodeUrl} size={64} ref={qrRef} />
             <span>Baixar QR Code</span>
           </Button>
         )}

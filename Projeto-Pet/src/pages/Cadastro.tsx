@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +7,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { User, Mail, Phone, Lock, Info } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 
 type FormData = {
@@ -17,15 +18,33 @@ type FormData = {
   email: string,
   phone: string,
   password: string,
-  confirmPassword: string
-}
- 
+  confirmPassword: string,
+  imagem?: FileList,
+  nomePet?: string,
+  tipo?: string,
+  raca?: string,
+  cor?: string,
+  sexo?: string,
+  dataNascimento?: string,
+  descricao?: string,
+};
 
 export default function Cadastro() {
-  const { register: authRegister } = useAuth();
+  const { register: authRegister, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const petToEdit = location.state?.pet || null;
   const [isLoading, setIsLoading] = useState(false);
+
+  function formatPhone(value: string){
+    let numbers = value.replace(/\D/g, "");
+    numbers = numbers.slice(0,11);
+    if (numbers.length<=2) return numbers;
+    if (numbers.length <= 7)
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  }
 
   const {
     register,
@@ -34,19 +53,57 @@ export default function Cadastro() {
     watch
   } = useForm<FormData>()
   
-const password = watch("password", "")
- 
+  const password = watch("password", "")
+
+  const [phone, setPhone] = useState("")
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      // This would connect to Supabase in a real application
-      await authRegister(data.name, data.email, data.phone, data.password);
-      toast({
-        title: "Cadastro realizado com sucesso",
-        description: "Sua conta foi criada com sucesso!",
-        variant: "default",
-      });
+      let imageUrl = petToEdit?.imagemUrl || ""; // Usa a imagem antiga por padrão
+
+      // Se o usuário selecionou uma nova imagem, faz upload
+      if (data.imagem && data.imagem.length > 0) {
+        const formData = new FormData();
+        formData.append("image", data.imagem[0]);
+
+        const response = await fetch(
+          `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
+          { method: "POST", body: formData }
+        );
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error("Falha ao enviar imagem");
+        }
+        imageUrl = result.data.url;
+      }
+
+      if (petToEdit) {
+        // EDIÇÃO
+        await setDoc(doc(db, "pets", petToEdit.id), {
+          nomePet: data.nomePet,
+          tipo: data.tipo,
+          raca: data.raca,
+          cor: data.cor,
+          sexo: data.sexo,
+          dataNascimento: data.dataNascimento,
+          descricao: data.descricao,
+          imagemUrl: imageUrl, // Usa a imagem nova ou antiga
+          ownerId: user.uid,
+          petCode: petToEdit.petCode,
+          createdAt: petToEdit.dataCadastro ? new Date(petToEdit.dataCadastro) : new Date(),
+        });
+        alert("Pet atualizado com sucesso!");
+      } else {
+        // CADASTRO (lógica já existente)
+        await authRegister(data.name, data.email, phone, data.password);
+        toast({
+          title: "Cadastro realizado com sucesso",
+          description: "Sua conta foi criada com sucesso!",
+          variant: "default",
+        });
+      }
       navigate("/meus-pets");
     } catch (error: any) {
       toast({
@@ -73,7 +130,7 @@ const password = watch("password", "")
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo</Label>
+                  <Label htmlFor="name">Nome Completo*</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                       <User className="h-5 w-5 text-gray-400" />
@@ -92,7 +149,7 @@ const password = watch("password", "")
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email*</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                       <Mail className="h-5 w-5 text-gray-400" />
@@ -116,17 +173,30 @@ const password = watch("password", "")
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
+                  <Label htmlFor="phone">Telefone*</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                       <Phone className="h-5 w-5 text-gray-400" />
                     </div>
                     <Input 
-                      id="phone" 
-                      {...register("phone", { required: true })}
-                      type="tel" 
-                      placeholder="(00) 00000-0000" 
+                      id="phone"
+                      type="tel"
+                      placeholder="(00) 00000-0000"
                       className={`pl-10 ${errors.phone ? "border-red-500" : ""}`}
+                      value={phone}
+                      {...register("phone", { 
+                        required: true,
+                          validate: value =>{
+                            const onlyNumbers = value.replace(/\D/g, "");
+                            return onlyNumbers.length === 11 || "Digite um telefone válido com 9 dígitos após o DDD";
+                          }
+                      })}
+                      onChange={e =>{
+                        const formatted = formatPhone(e.target.value)
+                        setPhone(formatted)
+                      }
+                      }
+                      maxLength={15}
                     />
                   </div>
                   {errors.phone && (
@@ -135,7 +205,7 @@ const password = watch("password", "")
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="password">Senha*</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                       <Lock className="h-5 w-5 text-gray-400" />
@@ -161,7 +231,7 @@ const password = watch("password", "")
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirme a Senha</Label>
+                  <Label htmlFor="confirmPassword">Confirme a Senha*</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                       <Lock className="h-5 w-5 text-gray-400" />
